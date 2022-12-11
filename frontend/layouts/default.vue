@@ -1,92 +1,88 @@
+<!--suppress CssUnusedSymbol -->
 <template>
-  <v-app dark>
-    <v-navigation-drawer
-      v-model="drawer"
-      :mini-variant="miniVariant"
-      :clipped="clipped"
-      fixed
-      app
-    >
-      <v-list>
-        <v-list-item
-          v-for="(item, i) in items"
-          :key="i"
-          :to="item.to"
-          router
-          exact
-        >
-          <v-list-item-action>
-            <v-icon>{{ item.icon }}</v-icon>
-          </v-list-item-action>
-          <v-list-item-content>
-            <v-list-item-title>{{ item.title }}</v-list-item-title>
-          </v-list-item-content>
-        </v-list-item>
-      </v-list>
+  <v-app>
+    <v-navigation-drawer app v-model="drawer" :mini-variant.sync="mini" permanent>
+      <v-list-item class="px-2">
+        <v-list-item-avatar tile>
+          <v-img src="icon.png"></v-img>
+        </v-list-item-avatar>
+
+        <v-list-item-title>IOT</v-list-item-title>
+
+        <v-btn icon @click.stop="mini = !mini">
+          <v-icon>mdi-chevron-left</v-icon>
+        </v-btn>
+      </v-list-item>
+      <v-divider/>
+      <LeftMenu/>
     </v-navigation-drawer>
-    <v-app-bar :clipped-left="clipped" fixed app>
-      <v-app-bar-nav-icon @click.stop="drawer = !drawer" />
-      <v-btn icon @click.stop="miniVariant = !miniVariant">
-        <v-icon>mdi-{{ `chevron-${miniVariant ? 'right' : 'left'}` }}</v-icon>
-      </v-btn>
-      <v-btn icon @click.stop="clipped = !clipped">
-        <v-icon>mdi-application</v-icon>
-      </v-btn>
-      <v-btn icon @click.stop="fixed = !fixed">
-        <v-icon>mdi-minus</v-icon>
-      </v-btn>
-      <v-toolbar-title>{{ title }}</v-toolbar-title>
-      <v-spacer />
-      <v-btn icon @click.stop="rightDrawer = !rightDrawer">
-        <v-icon>mdi-menu</v-icon>
-      </v-btn>
-    </v-app-bar>
+
     <v-main>
-      <v-container>
-        <Nuxt />
+      <top-menu :title="title"/>
+      <v-container fluid :class="scrollbarTheme">
+        <Nuxt/>
       </v-container>
     </v-main>
-    <v-navigation-drawer v-model="rightDrawer" :right="right" temporary fixed>
-      <v-list>
-        <v-list-item @click.native="right = !right">
-          <v-list-item-action>
-            <v-icon light> mdi-repeat </v-icon>
-          </v-list-item-action>
-          <v-list-item-title>Switch drawer (click me)</v-list-item-title>
-        </v-list-item>
-      </v-list>
-    </v-navigation-drawer>
-    <v-footer :absolute="!fixed" app>
-      <span>&copy; {{ new Date().getFullYear() }}</span>
-    </v-footer>
   </v-app>
 </template>
 
 <script>
-export default {
-  name: 'DefaultLayout',
-  data() {
+import {defineComponent} from 'vue';
+import LeftMenu from "../components/LeftMenu.vue";
+import TopMenu from "../components/TopMenu.vue";
+
+export default defineComponent({
+  components: {LeftMenu, TopMenu},
+  data(){
+    //TODO - title changing in TopMenu is not working correctly
+    let title = "Chyba";
+    let pathParts = this.$route.path.split('/');
+    if (pathParts.length === 1 || pathParts[1] === ''){
+      title = "Domov";
+    }
+    else {
+      let lastPart = pathParts[pathParts.length - 1];
+      switch (lastPart) {
+        case "map":
+          title = "Mapa";
+          break;
+        case "reservation":
+          title = "Rezervácia";
+          break;
+      }
+    }
     return {
-      clipped: false,
-      drawer: false,
-      fixed: false,
-      items: [
-        {
-          icon: 'mdi-apps',
-          title: 'Welcome',
-          to: '/',
-        },
-        {
-          icon: 'mdi-chart-bubble',
-          title: 'Inspire',
-          to: '/inspire',
-        },
-      ],
-      miniVariant: false,
-      right: true,
-      rightDrawer: false,
-      title: 'Vuetify.js',
+      drawer: true,
+      mini: false,
+      title: title,
     }
   },
-}
+  created() {
+    const darkModeCookie = this.$cookies.get('app.darkMode');
+    if (darkModeCookie) {
+      this.$vuetify.theme.dark = darkModeCookie;
+    }
+  },
+  computed: {
+    scrollbarTheme() {
+      return this.$vuetify.theme.dark ? 'dark' : 'light';
+    },
+  },
+})
 </script>
+
+<style>
+ /* stylelint-disable */
+.container--fluid{
+  overflow-x: hidden;
+  overflow-y: auto;
+  max-height: calc(100vh - 4em);
+  width: 100%;
+}
+
+.container{
+  min-width: 100%;
+  height: 100%;
+  padding: 6px;
+}
+</style>

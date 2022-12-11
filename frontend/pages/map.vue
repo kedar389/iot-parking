@@ -1,13 +1,13 @@
 <template>
   <v-row>
     <v-col class="text-center">
-      Hlavna stranka
+      Mapa
     </v-col>
   </v-row>
 </template>
 
 <script>
 export default {
-  name: 'IndexPage',
+  name: 'Map',
 }
 </script>

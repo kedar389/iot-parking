@@ -1,4 +1,10 @@
 import colors from 'vuetify/es5/util/colors'
+import YAML from 'yaml'
+import fs from 'fs'
+
+function loadYaml(path) {
+  return YAML.parse(fs.readFileSync(path, 'utf8'))
+}
 
 export default {
   // Disable server-side rendering: https://go.nuxtjs.dev/ssr-mode
@@ -18,7 +24,12 @@ export default {
   },
 
   // Global CSS: https://go.nuxtjs.dev/config-css
-  css: [],
+  css: [
+    './assets/css/styles.css'
+  ],
+  styleResources: {
+    scss: ['./assets/css/*.scss']
+  },
 
   // Plugins to run before rendering page: https://go.nuxtjs.dev/config-plugins
   plugins: [],
@@ -28,6 +39,7 @@ export default {
 
   // Modules for dev and build (recommended): https://go.nuxtjs.dev/config-modules
   buildModules: [
+    '@nuxt/typescript-build',
     // https://go.nuxtjs.dev/eslint
     '@nuxtjs/eslint-module',
     // https://go.nuxtjs.dev/stylelint
@@ -40,34 +52,89 @@ export default {
   modules: [
     // https://go.nuxtjs.dev/pwa
     '@nuxtjs/pwa',
+    '@nuxtjs/i18n',
+    'cookie-universal-nuxt'
   ],
 
   // PWA module configuration: https://go.nuxtjs.dev/pwa
   pwa: {
-    manifest: {
-      lang: 'en',
+    workbox: {
+      enabled: true
     },
+    icon: {
+
+    },
+    manifest: {
+      name: 'XXX',
+      short_name: 'XXX',
+      description: 'Project description',
+      theme_color: '#d5d5d1',
+      background_color: '#ffffff',
+      display: 'standalone',
+      lang: 'sk'
+    }
+  },
+
+  // I18n module configuration: https://i18n.nuxtjs.org/
+  i18n: {
+    locales: [
+      { code: 'en', name: 'English' },
+      { code: 'sk', name: 'Slovenský' }
+    ],
+    defaultLocale: 'sk',
+    parsePages: false,
+    vueI18n: {
+      fallbackLocale: 'sk',
+      messages: {
+        en: loadYaml('./locales/en-US.yaml'),
+        sk: loadYaml('./locales/sk-SK.yaml')
+      }
+    }
   },
 
   // Vuetify module configuration: https://go.nuxtjs.dev/config-vuetify
   vuetify: {
-    customVariables: ['~/assets/variables.scss'],
+    customVariables: ['./assets/css/variables.scss'],
+    customProperties: true,
     theme: {
-      dark: true,
+      dark: false,
       themes: {
-        dark: {
-          primary: colors.blue.darken2,
-          accent: colors.grey.darken3,
-          secondary: colors.amber.darken3,
-          info: colors.teal.lighten1,
+        light: {
+          primary: colors.green.darken1,
+          secondary: colors.cyan.base,
+          accent: colors.lime.base,
+          error: colors.red.base,
           warning: colors.amber.base,
-          error: colors.deepOrange.accent4,
-          success: colors.green.accent3,
+          info: colors.lightBlue.base,
+          success: colors.lightGreen.base
         },
+        dark: {
+          primary: colors.green.darken1,
+          secondary: colors.cyan.base,
+          accent: colors.lime.base,
+          error: colors.red.base,
+          warning: colors.amber.base,
+          info: colors.lightBlue.base,
+          success: colors.lightGreen.base
+        }
       },
     },
   },
 
   // Build Configuration: https://go.nuxtjs.dev/config-build
-  build: {},
+  build: {
+    extend (config, { isDev }) {
+      config.node = {
+        fs: 'empty'
+      }
+      // Sets webpack's mode to development if `isDev` is true.
+      if (isDev) {
+        config.mode = 'development'
+      }
+      config.module.rules.push({
+        test: /\.ya?ml$/,
+        use: 'yaml-loader'
+      });
+    }
+  },
 }
