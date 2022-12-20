@@ -6,7 +6,7 @@ function loadYaml(path) {
   return YAML.parse(fs.readFileSync(path, 'utf8'))
 }
 
-export default {
+module.exports= {
   // Disable server-side rendering: https://go.nuxtjs.dev/ssr-mode
   ssr: false,
 
