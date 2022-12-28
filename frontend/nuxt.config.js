@@ -7,13 +7,13 @@ function loadYaml(path) {
 }
 
 export default {
-  //FOR DEPLOYMENT
-  /*server: {
+  FOR DEPLOYMENT
+  *server: {
     port: 8080, // default: 3000
     host: '0.0.0.0', // default: localhost,
     timing: false
   },
-  mode: 'spa',*/
+  mode: 'spa',
 
   // Disable server-side rendering: https://go.nuxtjs.dev/ssr-mode
   ssr: false,
