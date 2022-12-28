@@ -1,0 +1,6 @@
+pigpio_dht-0.3.6.dist-info/METADATA,,
+pigpio_dht/__init__.py,,
+pigpio_dht/dht11.py,,
+pigpio_dht/dht22.py,,
+pigpio_dht/dhtxx.py,,
+pigpio_dht-0.3.6.dist-info/RECORD,,

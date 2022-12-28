@@ -9,5 +9,8 @@
 <script>
 export default {
   name: 'Reservation',
+  head: {
+    title: 'IOTparking - Rezervácia',
+  },
 }
 </script>

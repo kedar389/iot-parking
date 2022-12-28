@@ -1,19 +1,22 @@
-import json
-import utime
+import time
 from machine import Pin
 import network
-from lib.umqtt.robust2 import MQTTClient
 from components.sensors import Sensor
 from components.components import Component
-from components.devices import Device, Gate
-# can use umqtt.simple as well
+from components.actuators import Actuator
 import sys
 
 # TODO: MAYBE NOT CONNECT TO MQTT HERE AS WELL
-
+# TODO: CHANGE UTIME TO TIME
 """
     Maybe add closeAllGates to Microcontroller class
 """
+
+
+# enum lib does not exist in micropython
+class ComponentResponseType:
+    REGULAR = 1
+    INTERRUPT = 2
 
 
 # Abstract class
@@ -26,15 +29,15 @@ class Microcontroller:
         raise NotImplementedError(
             "All subclasses of Microcontroller must have implemented function for startup!")
 
-    def add_component(self, component: Component, pin: int) -> None:
+    def add_component(self, component: Component, pins, component_type: ComponentResponseType) -> None:
         raise NotImplementedError(
             "All subclasses of Microcontroller must have implemented function for component addition!")
 
-    def remove_component(self, pin: int) -> None:
+    def remove_component(self, component: Component) -> None:
         raise NotImplementedError(
             "All subclasses of Microcontroller must have implemented function for component removal!")
 
-    def component_handler(self) -> None:
+    def component_handler(self, component_type: ComponentResponseType) -> None:
         raise NotImplementedError(
             "All subclasses of Microcontroller must have implemented function for component handling!")
 
@@ -42,9 +45,8 @@ class Microcontroller:
 class RPiPico(Microcontroller):
     pin_count = 40
     instance_counter = 0
-    _components = (pin_count + 1) * [None]  # PIN MAX is reserved for internal thermometer
 
-    def __init__(self, pico_id: str = None, mqtt_server: str = "broker.hivemq.com"):
+    def __init__(self, pico_id: str = None):
         super().__init__()
         self.__start_sequence()
         if pico_id is not None:
@@ -53,41 +55,53 @@ class RPiPico(Microcontroller):
             self.id = "RPiPico#" + str(self.instance_counter)
             RPiPico.instance_counter += 1
 
-        self.__mqtt_server = mqtt_server
         self.__wlan = None
-        self.__mqtt_client = MQTTClient(self.id, self.__mqtt_server, keepalive=3600)
+        self._regular_components = {}
+        self._interrupt_components = {}
 
     def start_controller(self) -> None:
         print(f"\nMicrocontroller \"{self.id}\" -> starting\n")
         self.__start_sequence()
         self.connect_to_internet()
-        self.connect_to_mqtt()
         print(f"\nMicrocontroller \"{self.id}\" -> started successfully\n\n")
 
     @staticmethod
     def __start_sequence() -> None:
         led = Pin("LED", Pin.OUT)
         led.on()
-        utime.sleep(1)
+        time.sleep(1)
         led.off()
 
-    def add_component(self, component: Component, pin: int) -> None:
+    def add_component(self, component: Component, pins, component_type: ComponentResponseType) -> None:
         try:
-            if self._components[pin] is None:
-                self._components[pin] = component
+            if isinstance(pins, int):
+                if not 0 <= pins <= self.pin_count:
+                    raise IndexError
             else:
-                print(f"Pin {pin} is already occupied.")
+                # itterating when one component needs more pins
+                for pin in pins:
+                    if not 0 <= pin <= self.pin_count:
+                        raise IndexError
+            if component_type == ComponentResponseType.REGULAR not in self._regular_components:
+                self._regular_components[component] = pins
+            elif component_type == ComponentResponseType.INTERRUPT not in self._interrupt_components:
+                self._interrupt_components[component] = pins
+            else:
+                print("Component ", end="")
+                component.print_id()
+                print(" is already connected")
         except IndexError:
-            print(f"Pin {pin} does not exist on RPiPico!")
+            print(f"Pin {pins} does not exist on RPiPico!")
 
-    def remove_component(self, pin: int) -> None:
-        try:
-            if self._components[pin] is not None:
-                self._components[pin] = None
-            else:
-                print(f"Pin {pin} is already available.")
-        except IndexError:
-            print(f"Pin {pin} does not exist on RPiPico!")
+    def remove_component(self, component: Component) -> None:
+        if component not in self._regular_components and component not in self._interrupt_components:
+            print("Component ", end="")
+            component.print_id()
+            print(" is already not connected")
+            return
+
+        self._regular_components.pop(component, None)
+        self._interrupt_components.pop(component, None)
 
     def connect_to_internet(self) -> None:
         try:
@@ -98,19 +112,15 @@ class RPiPico(Microcontroller):
 
             if not self.__wlan.isconnected():
                 print('   ---reconnecting\n')
-                utime.sleep(5)
+                time.sleep(5)
                 self.connect_to_internet()
         except (MemoryError, RuntimeError, OSError):
-            print('Internet connection: FAILED\n')
-            print('Exiting process...')
+            print('Internet connection: FATAL ERROR\n')
+            print('Microcontroller shutdown...')
             sys.exit()
 
-    def connect_to_mqtt(self) -> None:
-        self.__mqtt_client.connect()
-        print(f'Mqtt connection: {self.__mqtt_server}')
-
     @staticmethod
-    def __device_handler(device: Device) -> None:
+    def __device_handler(device: Actuator) -> None:
         if device.is_connected_to_mqtt:
             device.check_message()
 
@@ -120,15 +130,59 @@ class RPiPico(Microcontroller):
             sensor.measure()
             sensor.publish_measurement()
 
-    def component_handler(self) -> None:
-        for component in self._components:
-            if isinstance(component, Device):
+    def component_handler(self, component_type: ComponentResponseType) -> None:
+        component_dict = {}
+        if component_type == ComponentResponseType.REGULAR:
+            component_dict = self._regular_components
+        elif component_type == ComponentResponseType.INTERRUPT:
+            component_dict = self._interrupt_components
+
+        for component in component_dict:
+            if isinstance(component, Actuator):
                 self.__device_handler(component)
 
             elif isinstance(component, Sensor):
                 self.__sensor_handler(component)
 
-    def close_all_gates(self) -> None:
-        for component in self._components:
-            if isinstance(component, Gate):
-                self.__mqtt_client.publish(component.topic, json.dumps({"close": "True"}))
+    def __components_health_check(self, component_type: ComponentResponseType) -> None:
+        component_dict = {}
+        if component_type == ComponentResponseType.REGULAR:
+            component_dict = self._regular_components
+        elif component_type == ComponentResponseType.INTERRUPT:
+            component_dict = self._interrupt_components
+
+        for component in component_dict:
+            print("Component ", end="")
+            component.print_id()
+            healthy, health_report = component.health_check()
+            print(
+                f" health status: \"{'HEALTHY' if healthy else 'UNHEALTHY'}\"\n    full report: \"{health_report}\"\n")
+
+            if not component.is_connected_to_mqtt:
+                component.connect_to_mqtt()
+
+    def disconnect_all(self, component_type: ComponentResponseType):
+        component_dict = {}
+        if component_type == ComponentResponseType.REGULAR:
+            component_dict = self._regular_components
+        elif component_type == ComponentResponseType.INTERRUPT:
+            component_dict = self._interrupt_components
+
+        for component in component_dict:
+            component.disconnect()
+
+    def connect_all(self, component_type: ComponentResponseType):
+        component_dict = {}
+        if component_type == ComponentResponseType.REGULAR:
+            component_dict = self._regular_components
+        elif component_type == ComponentResponseType.INTERRUPT:
+            component_dict = self._interrupt_components
+
+        for component in component_dict:
+            component.connect_to_mqtt()
+
+    def handle_health_check(self, component_type: ComponentResponseType) -> None:
+        if not self.__wlan.isconnected():
+            self.connect_to_internet()
+
+        self.__components_health_check(component_type)

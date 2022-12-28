@@ -6,14 +6,22 @@ function loadYaml(path) {
   return YAML.parse(fs.readFileSync(path, 'utf8'))
 }
 
-module.exports= {
+export default {
+  //FOR DEPLOYMENT
+  /*server: {
+    port: 8080, // default: 3000
+    host: '0.0.0.0', // default: localhost,
+    timing: false
+  },
+  mode: 'spa',*/
+
   // Disable server-side rendering: https://go.nuxtjs.dev/ssr-mode
   ssr: false,
 
   // Global page headers: https://go.nuxtjs.dev/config-head
   head: {
-    titleTemplate: '%s - frontend',
-    title: 'frontend',
+    titleTemplate: '%s',
+    title: 'IOTparking',
     meta: [
       { charset: 'utf-8' },
       { name: 'viewport', content: 'width=device-width, initial-scale=1' },
@@ -22,7 +30,7 @@ module.exports= {
     ],
     link: [{ rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' }],
   },
-
+  lintOnSave: false,
   // Global CSS: https://go.nuxtjs.dev/config-css
   css: [
     './assets/css/styles.css'
@@ -41,9 +49,9 @@ module.exports= {
   buildModules: [
     '@nuxt/typescript-build',
     // https://go.nuxtjs.dev/eslint
-    '@nuxtjs/eslint-module',
+    //'@nuxtjs/eslint-module',
     // https://go.nuxtjs.dev/stylelint
-    '@nuxtjs/stylelint-module',
+    //'@nuxtjs/stylelint-module',
     // https://go.nuxtjs.dev/vuetify
     '@nuxtjs/vuetify',
   ],

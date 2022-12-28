@@ -6,8 +6,8 @@
         <v-list-item-content><v-list-item-title>{{ item.title }}</v-list-item-title></v-list-item-content>
       </v-list-item>
     </div>
-    <SettingsForm v-model="showSettingsForm"/>
-    <AboutAppForm v-model="showAboutAppForm"/>
+    <settings-form v-model="showSettingsForm"/>
+    <about-app-form v-model="showAboutAppForm"/>
   </v-list>
 </template>
 
@@ -28,9 +28,9 @@ export default defineComponent({
     openSettingsForm(){
       this.showSettingsForm = true
     },
-    openReservation(){
-      this.$router.push({ path: this.localePath({ path: 'reservation/' }) });
-    },
+    // openReservation(){
+    //   this.$router.push({ path: this.localePath({ path: 'reservation/' }) });
+    // },
     openAboutAppForm(){
       this.showAboutAppForm = true
     },
@@ -45,7 +45,6 @@ export default defineComponent({
       items: [
         { title: 'Domov', icon: 'mdi-home-city', target: this.openHome },
         { title: 'Mapa', icon: 'mdi-table', target: this.openMap },
-        { title: 'Rezervácia', icon: 'mdi-eye', target: this.openReservation },
         { title: 'Nastavenia', icon: 'mdi-cog', target: this.openSettingsForm},
         { title: 'O aplikácií', icon: 'mdi-information', target: this.openAboutAppForm },
       ]

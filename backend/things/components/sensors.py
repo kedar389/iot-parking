@@ -2,33 +2,22 @@ import machine
 import json
 from machine import Pin
 import dht
-from components.components import Component
+from components.publishers import Publisher
+from lib.umqtt.simple import MQTTClient
 
 
 # Abstract class
-class Sensor(Component):
+class Sensor(Publisher):
     __current_measurement = None
 
-    def __init__(self, sensor_location: str, sensor_id: str, spec_attr_name: str):
+    def __init__(self, sensor_location: str, sensor_id: str, spec_attr_name: str, mqtt_client: MQTTClient = None, mqtt_server: str = "iot-hub-parking.azure-devices.net"):
         if type(self) is Sensor:
             raise Exception('Error init: <Sensor is abstract class>')
 
-        super().__init__(sensor_location, sensor_id)
+        super().__init__(sensor_location, sensor_id, mqtt_client, mqtt_server)
         self._spec_attr_name = spec_attr_name
 
-    def connect_to_mqtt(self) -> None:
-        try:
-            self._mqtt_client.connect()
-            self.is_connected_to_mqtt = True
-            print(f'Sensor "{self._id}" -> mqtt connection: {self._mqtt_server}\n')
-        except OSError:
-            print(f'Sensor "{self._id}" -> mqtt connection: FAILED\n')
-
     def params_to_json(self) -> json:
-        """
-        if isinstance(self.__current_measurement, float):
-            self.__current_measurement = round(self.__current_measurement, 2)
-        """
         param_combined = {
             'sensor_location': self._location,
             'sensor_id': self._id,
@@ -41,32 +30,69 @@ class Sensor(Component):
         raise NotImplementedError("All subclasses of Sensor must have implemented function for measurement!")
 
     def get_topic(self) -> str:
-        return "sensors"
+        return super().get_topic() + "/sensors"
 
     def publish_measurement(self) -> None:
-        self._mqtt_client.publish(self.get_topic(), self.params_to_json())
+        print(f"Sensor {self._id} message:")
+        print(f'    Topic: {self.get_topic()}, Measurement: {self.__current_measurement}, JSON: {self.params_to_json()}')
+        if self.is_connected_to_mqtt:
+            try:
+                self._mqtt_client.publish(self.get_topic(), self.params_to_json())
+                print(f"Sensor {self._id} publishing status: SUCCESS\n")
+            except Exception:
+                self.is_connected_to_mqtt = False
+                print(f"Sensor {self._id} publishing status: FAILURE - MQTT CONNECTION FAILED\n")
+        else:
+            print(f"Sensor {self._id} publishing status: FAILURE - MQTT NOT CONNECTED\n")
 
 
 """
     Maybe set instance counter here, with names only thermometer
 """
+
+
 # Abstract class
 class GeneralThermometer(Sensor):
-    def __init__(self, sensor_location: str, sensor_id: str):
+    def __init__(self, sensor_location: str, sensor_id: str, mqtt_client: MQTTClient = None, mqtt_server: str = "iot-hub-parking.azure-devices.net"):
         if type(self) is GeneralThermometer:
             raise Exception('Error init: <GeneralThermometer is abstract class>')
-        super().__init__(sensor_location, sensor_id, "temperature")
+        super().__init__(sensor_location, sensor_id, "temperature", mqtt_client, mqtt_server)
 
     def get_topic(self) -> str:
-        return super().get_topic() + "/thermometers"
+        return "custom_temperature" # TODO REMOVE
+        return super().get_topic() + "/thermometers/" + self._id
+
+
+# Abstract class
+class GeneralHumiditySensor(Sensor):
+    def __init__(self, sensor_location: str, sensor_id: str, mqtt_client: MQTTClient = None, mqtt_server: str = "iot-hub-parking.azure-devices.net"):
+        if type(self) is GeneralHumiditySensor:
+            raise Exception('Error init: <GeneralHumiditySensor is abstract class>')
+        super().__init__(sensor_location, sensor_id, "humidity", mqtt_client, mqtt_server)
+
+    def get_topic(self) -> str:
+        return "custom_humidity" # TODO REMOVE
+        return super().get_topic() + "/humidity_sensors/" + self._id
+
+
+# Abstract class
+class GeneralDistanceSensor(Sensor):
+    def __init__(self, sensor_location: str, sensor_id: str, mqtt_client: MQTTClient = None, mqtt_server: str = "iot-hub-parking.azure-devices.net"):
+        if type(self) is GeneralDistanceSensor:
+            raise Exception('Error init: <GeneralDistanceSensor is abstract class>')
+        super().__init__(sensor_location, sensor_id, "distance", mqtt_client, mqtt_server)
+
+    def get_topic(self) -> str:
+        return "distance_sensor" # TODO REMOVE
+        return super().get_topic() + "/distance_sensors/" + self._id
 
 
 class InternalThermometer(GeneralThermometer):
     __current_measurement = None
     instance_counter = 0
 
-    def __init__(self, sensor_location: str):
-        super().__init__(sensor_location, "internal_thermometer#" + str(self.instance_counter))
+    def __init__(self, sensor_location: str, mqtt_client: MQTTClient = None, mqtt_server: str = "iot-hub-parking.azure-devices.net"):
+        super().__init__(sensor_location, "internal_thermometer_" + str(self.instance_counter), mqtt_client, mqtt_server)
         InternalThermometer.instance_counter += 1
 
     def measure(self) -> None:
@@ -77,25 +103,83 @@ class InternalThermometer(GeneralThermometer):
 
 
 """
-    3v3 -> power
-    GP0 -> com
+    Cannot have DHT11 sensors in one class, because there would be only
+    one mqtt connection, which would then violate mqtt scheme. Changing
+    the class to support multiple mqtt connections would be more complicated.
 """
-class ExternalThermometer(GeneralThermometer):
-    """
-        Assumpting using ONLY DHT11 sensors.
-        For usage of other create separate classes renamed accordingly.
-        DHT11 could potentially be used for humidity. In that case we need
-        to change RPiPico array, which do not allow us to have multiple
-        sensors on one pin.
-    """
+"""
+    3v3 -> power
+    GP4 -> com
+"""
+
+
+class DHT11Thermometer(GeneralThermometer):
     __current_measurement = None
     instance_counter = 0
 
-    def __init__(self, sensor_location: str, pin: int):
-        super().__init__(sensor_location, "external_thermometer#" + str(self.instance_counter))
+    def __init__(self, sensor_location: str, pin: int, mqtt_client: MQTTClient = None, mqtt_server: str = "iot-hub-parking.azure-devices.net"):
+        super().__init__(sensor_location, "dht11_thermometer_" + str(self.instance_counter), mqtt_client, mqtt_server)
         self.__pin = Pin(pin, Pin.OUT, Pin.PULL_DOWN)
         self.__internal_sensor = dht.DHT11(self.__pin)
+        self.__is_sensor_working = True
 
     def measure(self) -> None:
-        self.__internal_sensor.measure()
-        self.__current_measurement = self.__internal_sensor.temperature()
+        try:
+            self.__internal_sensor.measure()
+            self.__current_measurement = self.__internal_sensor.temperature()
+            self.__is_sensor_working = True
+        except OSError:
+            self.__current_measurement = None
+            self.__is_sensor_working = False
+            print(f"DHT sensor {self._id} not working properly\n")
+
+    def health_check(self) -> (bool, json):
+        healthy, health_report = super().health_check()
+        health_report = json.loads(health_report)
+        health_report["sensor_working"] = self.__is_sensor_working
+        return healthy and self.__is_sensor_working, json.dumps(health_report)
+
+
+"""
+    3v3 -> power
+    GP4 -> com
+"""
+
+
+class DHT11HumiditySensor(GeneralHumiditySensor):
+    __current_measurement = None
+    instance_counter = 0
+
+    def __init__(self, sensor_location: str, pin: int, mqtt_client: MQTTClient = None, mqtt_server: str = "iot-hub-parking.azure-devices.net"):
+        super().__init__(sensor_location, "dht11_humidity_sensor_" + str(self.instance_counter), mqtt_client, mqtt_server)
+        self.__pin = Pin(pin, Pin.OUT, Pin.PULL_DOWN)
+        self.__internal_sensor = dht.DHT11(self.__pin)
+        self.__is_sensor_working = True
+
+    def measure(self) -> None:
+        try:
+            self.__internal_sensor.measure()
+            self.__current_measurement = self.__internal_sensor.humidity()
+        except OSError:
+            self.__current_measurement = None
+            self.__is_sensor_working = False
+            print(f"DHT sensor {self._id} not working properly\n")
+
+    def health_check(self) -> (bool, json):
+        healthy, health_report = super().health_check()
+        health_report = json.loads(health_report)
+        health_report["sensor_working"] = self.__is_sensor_working
+        return healthy and self.__is_sensor_working, json.dumps(health_report)
+
+
+# TODO please insert which pin is for power and which for data, like on line 118-121
+class IRDistance(GeneralDistanceSensor):
+    __current_measurement = None
+    instance_counter = 0
+
+    def __init__(self, sensor_location: str, pin: int, mqtt_client: MQTTClient = None, mqtt_server: str = "iot-hub-parking.azure-devices.net"):
+        super().__init__(sensor_location, "distance_sensor_" + str(self.instance_counter), mqtt_client, mqtt_server)
+        self.__pin = Pin(pin, Pin.IN)
+
+    def measure(self) -> None:
+        self.__current_measurement = self.__pin.value()

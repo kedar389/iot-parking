@@ -1,0 +1,19 @@
+Metadata-Version: 2.1
+Name: micropython-umqtt.robust
+Version: 1.0
+Summary: Lightweight MQTT client for MicroPython ("robust" version).
+Home-page: https://github.com/micropython/micropython/issues/405
+Author: Paul Sokolovsky
+Author-email: micro-python@googlegroups.com
+Maintainer: MicroPython Developers
+Maintainer-email: micro-python@googlegroups.com
+License: MIT
+
+umqtt.robust
+============
+
+umqtt is a simple MQTT client for MicroPython. (Note that it uses some
+MicroPython shortcuts and doesn't work with CPython). It consists of
+two submodules: umqtt.simple and umqtt.robust. umqtt.robust is built
+on top of umqtt.simple and adds auto-reconnect facilities for some of
+networking errors.

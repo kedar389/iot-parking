@@ -7,7 +7,7 @@
         <v-form ref="form" v-model="valid" lazy-validation>
           <v-select v-model="langSelect" :items="languages" :label="'Jazyk'" @change="changeLocale" item-text="name" item-value="code"></v-select>
           <v-switch v-model="darkMode" :label="'Tmavý režim'" @change="changeDarkMode"></v-switch>
-          <v-switch v-model="compactView" :label="'Kompaktný režim zobrazenia pri vizualizácií'" @change="changeCompactView"></v-switch>
+<!--          <v-switch v-model="compactView" :label="'Kompaktný režim zobrazenia pri vizualizácií'" @change="changeCompactView"></v-switch>-->
         </v-form>
       </v-card-text>
       <v-divider/>

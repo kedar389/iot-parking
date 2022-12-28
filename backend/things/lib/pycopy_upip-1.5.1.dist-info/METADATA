@@ -1,0 +1,9 @@
+Metadata-Version: 2.1
+Name: pycopy-upip
+Version: 1.5.1
+Summary: Simple package manager for Pycopy project: https://github.com/pfalcon/pycopy
+Home-page: https://github.com/pfalcon/pycopy-lib
+Author: Paul Sokolovsky
+Author-email: pycopy-dev@googlegroups.com
+License: MIT
+

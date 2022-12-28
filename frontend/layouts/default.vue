@@ -14,13 +14,13 @@
         </v-btn>
       </v-list-item>
       <v-divider/>
-      <LeftMenu/>
+      <left-menu/>
     </v-navigation-drawer>
 
     <v-main>
-      <top-menu :title="title"/>
+      <top-menu :title="title" v-model="title"/>
       <v-container fluid :class="scrollbarTheme">
-        <Nuxt/>
+        <nuxt/>
       </v-container>
     </v-main>
   </v-app>
@@ -34,7 +34,6 @@ import TopMenu from "../components/TopMenu.vue";
 export default defineComponent({
   components: {LeftMenu, TopMenu},
   data(){
-    //TODO - title changing in TopMenu is not working correctly
     let title = "Chyba";
     let pathParts = this.$route.path.split('/');
     if (pathParts.length === 1 || pathParts[1] === ''){
@@ -55,6 +54,27 @@ export default defineComponent({
       drawer: true,
       mini: false,
       title: title,
+    }
+  },
+  watch: {
+    $route: function (to, from) {
+      let pathParts = to.path.split('/');
+      if (pathParts.length === 1 || pathParts[1] === ''){
+        this.title = "Domov";
+      }
+      else {
+        let lastPart = pathParts[pathParts.length - 1];
+        switch (lastPart) {
+          case "map":
+            this.title = "Mapa";
+            break;
+          case "reservation":
+            this.title = "Rezervácia";
+            break;
+          default:
+              this.title = "Chyba";
+        }
+      }
     }
   },
   created() {
