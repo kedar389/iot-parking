@@ -5,9 +5,8 @@
       <v-card-title class="text-h5">Nastavenia</v-card-title>
       <v-card-text>
         <v-form ref="form" v-model="valid" lazy-validation>
-          <v-select v-model="langSelect" :items="languages" :label="'Jazyk'" @change="changeLocale" item-text="name" item-value="code"></v-select>
-          <v-switch v-model="darkMode" :label="'Tmavý režim'" @change="changeDarkMode"></v-switch>
-<!--          <v-switch v-model="compactView" :label="'Kompaktný režim zobrazenia pri vizualizácií'" @change="changeCompactView"></v-switch>-->
+          <v-select v-model="langSelect" :items="languages" :label="'Jazyk'" @change="changeLocale" item-text="name" item-value="code" outlined dense/>
+          <v-switch v-model="darkMode" :label="'Tmavý režim'" @change="changeDarkMode" dense/>
         </v-form>
       </v-card-text>
       <v-divider/>
@@ -25,7 +24,9 @@ import {defineComponent} from "vue";
 export default defineComponent({
   name: "SettingsForm",
   props: {
-    value:{
+    value: {
+      type: Boolean,
+      required: true
     }
   },
   computed: {
@@ -44,7 +45,6 @@ export default defineComponent({
       langSelect: this.$i18n.locale,
       languages: this.$i18n.locales,
       darkMode: this.$vuetify.theme.dark,
-      compactView: this.$cookies.get('app.compactView')
     }
   },
   methods: {
@@ -54,12 +54,8 @@ export default defineComponent({
     },
     changeDarkMode() {
       this.$vuetify.theme.dark = !this.$vuetify.theme.dark;
+      this.$root.$emit('darkModeChanged', this.$vuetify.theme.dark);
       this.$cookies.set('app.darkMode', this.$vuetify.theme.dark);
-    },
-    changeCompactView() {
-      this.compactView = !this.$cookies.get('app.compactView');
-      this.$cookies.set('app.compactView', this.compactView);
-      this.$root.$emit('compactViewChanged', this.compactView);
     },
   }
 })

@@ -1,24 +1,22 @@
 <!--suppress CssUnusedSymbol -->
 <template>
   <v-app>
-    <v-navigation-drawer app v-model="drawer" :mini-variant.sync="mini" permanent>
+    <v-app-bar app color="primary" dark>
+      <v-app-bar-nav-icon @click.stop="drawer = !drawer" v-show="windowWidth < 800"></v-app-bar-nav-icon>
+      <v-toolbar-title>{{title}}</v-toolbar-title>
+    </v-app-bar>
+    <v-navigation-drawer app v-model="drawer" :temporary="windowWidth < 800" :permanent="windowWidth >= 800">
       <v-list-item class="px-2">
         <v-list-item-avatar tile>
           <v-img src="icon.png"></v-img>
         </v-list-item-avatar>
-
-        <v-list-item-title>IOT</v-list-item-title>
-
-        <v-btn icon @click.stop="mini = !mini">
-          <v-icon>mdi-chevron-left</v-icon>
-        </v-btn>
+        <v-list-item-title>IOT Parking</v-list-item-title>
       </v-list-item>
       <v-divider/>
       <left-menu/>
     </v-navigation-drawer>
 
     <v-main>
-      <top-menu :title="title" v-model="title"/>
       <v-container fluid :class="scrollbarTheme">
         <nuxt/>
       </v-container>
@@ -29,10 +27,9 @@
 <script>
 import {defineComponent} from 'vue';
 import LeftMenu from "../components/LeftMenu.vue";
-import TopMenu from "../components/TopMenu.vue";
 
 export default defineComponent({
-  components: {LeftMenu, TopMenu},
+  components: {LeftMenu},
   data(){
     let title = "Chyba";
     let pathParts = this.$route.path.split('/');
@@ -52,8 +49,8 @@ export default defineComponent({
     }
     return {
       drawer: true,
-      mini: false,
       title: title,
+      windowWidth: window.innerWidth,
     }
   },
   watch: {
@@ -88,6 +85,11 @@ export default defineComponent({
       return this.$vuetify.theme.dark ? 'dark' : 'light';
     },
   },
+  mounted() {
+    window.addEventListener('resize', () => {
+      this.windowWidth = window.innerWidth
+    })
+  }
 })
 </script>
 

@@ -1,5 +1,6 @@
+<!--suppress JSUnresolvedVariable -->
 <template>
-  <div>
+  <div class="content">
     <v-row>
       <v-col class="col-12">
         <div class="header">
@@ -65,7 +66,7 @@
                 item-text="name"
                 item-value="id"
                 label="Vyberte deň"
-                dense
+                dense outlined
                 @change="onSelectedDayChange"/>
             </span>
           </v-card-title>
@@ -145,10 +146,10 @@ export default {
   name: 'IndexPage',
   data() {
     return {
-      allParkingSpotsCount: 50,
-      freeParkingSpotsCount: 44,
-      allParkingSpotsInvalidCount: 10,
-      freeParkingSpotsInvalidCount: 10,
+      allParkingSpotsCount: 14,
+      freeParkingSpotsCount: 14,
+      allParkingSpotsInvalidCount: 2,
+      freeParkingSpotsInvalidCount: 2,
       currentTemperature: null,
       currentHumidity: null,
       currentWeatherIcon: null,
@@ -172,6 +173,9 @@ export default {
     };
   },
   mounted() {
+    this.freeParkingSpotsInvalidCount = 2;
+    this.freeParkingSpotsCount = 14;
+
     axios
       .get('https://api.openweathermap.org/data/2.5/weather?units=metric&q=kosice,sk&appid=2b7d61cfafe37bd68540092f20ba864a')
       .then(response => {
@@ -186,26 +190,67 @@ export default {
       })
       .finally(() => this.loadingOpenWeather = false)
 
-    this.attendance = {
-      0: {
-        1: 20,
-        2: 30,
-        3: 30,
-        4: 30,
-        16: 160
-      }
-    }
+    axios
+      .get('http://localhost:3000/api/parkslots')
+      .then(response => {
+        let parkslotsRaw = response.data;
+        let parkslots = new Map();
+        let attendanceByDay = new Map();
+        parkslotsRaw.forEach(parkslot => {
+          if (parkslot.distance === 1){
+            if (parkslots.has(parkslot.IoTHub.ConnectionDeviceId)){
+              parkslots.get(parkslot.IoTHub.ConnectionDeviceId).push(parkslot);
+            } else {
+              parkslots.set(parkslot.IoTHub.ConnectionDeviceId, [parkslot]);
+            }
+
+            let date = new Date(parkslot.EventProcessedUtcTime);
+            let day = date.getDay();
+            let hour = date.getHours();
+            if (attendanceByDay.has(day)){
+              if (attendanceByDay.get(day).has(hour)){
+                attendanceByDay.get(day).set(hour, attendanceByDay.get(day).get(hour) + 1);
+              } else {
+                attendanceByDay.get(day).set(hour, 1);
+              }
+            } else {
+              attendanceByDay.set(day, new Map());
+            }
+          }
+        });
+
+        //pre kazdy slot zistit ci bol poslednu pol hodinu obsadeny
+        for (let key of parkslots.keys()) {
+          if (key === 'parkslot2'){
+            this.freeParkingSpotsInvalidCount--;
+          } else {
+            this.freeParkingSpotsCount--;
+          }
+        }
+
+        //Obsadenost parkoviska v case
+        this.attendance = {
+          0: {}, 1: {}, 2: {}, 3: {}, 4: {}, 5: {}, 6: {},
+        }
+
+        attendanceByDay.forEach((map, key) => {
+          map.forEach((number, hour) => {
+            this.attendance[key][hour] = number;
+          })
+        })
+      })
+      .finally(() => this.loadingIotServer = false)
 
     this.infoTable = {
       0: {
         id: 1,
-        title: "jdjdjjmd",
-        subtitle: "gg ffgg hhh"
+        title: "Oznam 1",
+        subtitle: "Oznam test 1"
       },
       1: {
         id: 2,
         title: "Zmena vývoja",
-        subtitle: "Zmena vývoja"
+        subtitle: "Oznam test 2"
       },
     }
   },
@@ -223,7 +268,7 @@ export default {
     },
     getAttendance() {
       let attendance = [];
-      if (this.attendance == null ||this.attendance[this.selectedDay] == null) {
+      if (this.attendance == null || this.attendance[this.selectedDay] == null) {
         for (let i = 0; i < 24; i++) {
           attendance.push(0);
         }
@@ -261,4 +306,7 @@ export default {
   flex-wrap: wrap;
 }
 
+.content{
+  padding: 1.5em;
+}
 </style>

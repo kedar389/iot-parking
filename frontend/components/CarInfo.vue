@@ -1,335 +1,278 @@
+<!--suppress JSUnresolvedVariable -->
 <template>
-  <div class="info">
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Sharp:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
-  <!--GOOGLE FONTS POPPINS-->
-  <!--STYLESHEET-->
-  <section class="right">
+  <div>
     <div class="recent-subtasks">
-      <div class="header">
-        <h2>Subtasks</h2>
-        <a href="#">More<span class="material-symbols-sharp">
-                        chevron_right
-                    </span></a>
+      <div class="carinfo-header">
+        <h2>Parkovacie miesto</h2>
+        <h3>B{{carId}}</h3>
+        <span>TUKE areal</span>
       </div>
-      <a class="subtasks" href="./Subtask1.html">
+      <!-- ParkingSlot temperature -->
+      <div class="subtasks">
         <div class="service">
-          <div class="icon bg-purple-light">
-                            <span class="material-symbols-sharp">
-                                monitoring
-                            </span>
-          </div>
+          <v-icon>mdi-thermometer</v-icon>
           <div class="details">
-            <h4>Subtask 1</h4>
-            <p>20.11.2021</p>
+            <h4>Teplota</h4>
           </div>
         </div>
         <div class="subtask-details">
           <div class="card bg-danger">
-                            <span class="material-symbols-sharp">
-                                close
-                            </span>
-          </div>
-          <div class="details">
-            <p>id: 7755</p>
-            <small class="text-muted">park scene</small>
+              <h4>{{currentTemperature}}°C</h4>
           </div>
         </div>
-        <h4>25%</h4>
-      </a>
-      <!--END OF subtask-->
-      <a class="subtasks" href="./Subtask2.html">
+      </div>
+      <!-- ParkingSlot humidity -->
+      <div class="subtasks">
         <div class="service">
-          <div class="icon bg-purple-light">
-                            <span class="material-symbols-sharp">
-                                monitoring
-                            </span>
-          </div>
+          <v-icon>mdi-water-percent</v-icon>
           <div class="details">
-            <h4>Subtask 2</h4>
-            <p>20.11.2021</p>
+            <h4>Vlhkosť</h4>
           </div>
         </div>
         <div class="subtask-details">
           <div class="card bg-danger">
-                            <span class="material-symbols-sharp">
-                                close
-                            </span>
-          </div>
-          <div class="details">
-            <p>id: 7755</p>
-            <small class="text-muted">park scene</small>
+              <h4>{{currentHumidity}}%</h4>
           </div>
         </div>
-        <h4>40%</h4>
-      </a>
-      <!--END OF subtask-->
-      <a class="subtasks" href="./Subtask3.html">
+      </div>
+      <!-- ParkingSlot warning -->
+      <div class="subtasks" v-if="warningType.valueOf() !== ParkingSlotWarning.None">
         <div class="service">
-          <div class="icon bg-purple-light">
-                            <span class="material-symbols-sharp">
-                                monitoring
-                            </span>
-          </div>
+          <v-icon>{{isFreezing ? 'mdi-snowflake' : 'mdi-white-balance-sunny'}}</v-icon>
           <div class="details">
-            <h4>Subtask 3</h4>
-            <p>20.11.2021</p>
+            <h4>{{isFreezing ? 'Možnosť námrazy' : 'Horúčava'}}</h4>
           </div>
         </div>
         <div class="subtask-details">
           <div class="card bg-danger">
-                            <span class="material-symbols-sharp">
-                                close
-                            </span>
-          </div>
-          <div class="details">
-            <p>id: 7755</p>
-            <small class="text-muted">park scene</small>
+            <v-icon :id="`alert-${isFreezing ? 'freezing' : 'overheating'}`">mdi-alert-outline</v-icon>
           </div>
         </div>
-        <h4>36%</h4>
-      </a>
-      <!--END OF subtask-->
-      <a class="subtasks" href="./Subtask4.html">
+      </div>
+      <!-- ParkSlot if accesible -->
+      <div class="subtasks" v-if="isAccessible">
         <div class="service">
-          <div class="icon bg-purple-light">
-                            <span class="material-symbols-sharp">
-                                monitoring
-                            </span>
-          </div>
+          <v-icon>mdi-wheelchair</v-icon>
           <div class="details">
-            <h4>Subtask 4</h4>
-            <p>20.11.2021</p>
+            <h4>Vyhradené</h4>
+            <p>miesto určené ZŤP</p>
           </div>
         </div>
-        <div class="subtask-details">
-          <div class="card bg-success">
-                            <span class="material-symbols-sharp">
-                                done
-                            </span>
-          </div>
-          <div class="details">
-            <p>id: 7755</p>
-            <small class="text-muted">park scene</small>
-          </div>
-        </div>
-        <h4>75%</h4>
-      </a>
-      <!--END OF subtask-->
-      <a class="subtasks" href="./Subtask5.html">
+      </div>
+      <!-- ParkSlot state -->
+      <div class="subtasks" :style="getStateColor">
         <div class="service">
-          <div class="icon bg-purple-light">
-                            <span class="material-symbols-sharp">
-                                monitoring
-                            </span>
-          </div>
+          <v-icon>{{stateIcon}}</v-icon>
           <div class="details">
-            <h4>Subtask 5</h4>
-            <p>20.11.2021</p>
+            <h4>{{stateText}}</h4>
+            <span v-if="state.valueOf() === ParkingSlotState.Reserved">od {{ reservedFrom }} do {{ reservedTo }}</span>
           </div>
         </div>
-        <div class="subtask-details">
-          <div class="card bg-success">
-                            <span class="material-symbols-sharp">
-                                done
-                            </span>
-          </div>
-          <div class="details">
-            <p>id: 7755</p>
-            <small class="text-muted">park scene</small>
-          </div>
-        </div>
-        <h4>80%</h4>
-      </a>
-      <!--END OF subtask-->
-      <a class="subtasks" href="./Subtask6.html">
-        <div class="service">
-          <div class="icon bg-purple-light">
-                            <span class="material-symbols-sharp">
-                                monitoring
-                            </span>
-          </div>
-          <div class="details">
-            <h4>Subtask 6</h4>
-            <p>20.11.2021</p>
-          </div>
-        </div>
-        <div class="subtask-details">
-          <div class="card bg-danger">
-                            <span class="material-symbols-sharp">
-                                close
-                            </span>
-          </div>
-          <div class="details">
-            <p>id: 7755</p>
-            <small class="text-muted">park scene</small>
-          </div>
-        </div>
-        <h4>20%</h4>
-      </a>
-      <!--END OF subtask-->
-      <a class="subtasks" href="./Subtask7.html">
-        <div class="service">
-          <div class="icon bg-purple-light">
-                            <span class="material-symbols-sharp">
-                                monitoring
-                            </span>
-          </div>
-          <div class="details">
-            <h4>Subtask 7</h4>
-            <p>20.11.2021</p>
-          </div>
-        </div>
-        <div class="subtask-details">
-          <div class="card bg-danger">
-                            <span class="material-symbols-sharp">
-                                close
-                            </span>
-          </div>
-          <div class="details">
-            <p>id: 7755</p>
-            <small class="text-muted">park scene</small>
-          </div>
-        </div>
-        <h4>30%</h4>
-      </a>
-      <!--END OF subtask-->
-      <a class="subtasks" href="./Subtask8.html">
-        <div class="service">
-          <div class="icon bg-purple-light">
-                            <span class="material-symbols-sharp">
-                                monitoring
-                            </span>
-          </div>
-          <div class="details">
-            <h4>Subtask 8</h4>
-            <p>20.11.2021</p>
-          </div>
-        </div>
-        <div class="subtask-details">
-          <div class="card bg-danger">
-                            <span class="material-symbols-sharp">
-                                close
-                            </span>
-          </div>
-          <div class="details">
-            <p>id: 7755</p>
-            <small class="text-muted">park scene</small>
-          </div>
-        </div>
-        <h4>45%</h4>
-      </a>
-      <!--END OF subtask-->
-      <a class="subtasks" href="./Subtask9.html">
-        <div class="service">
-          <div class="icon bg-purple-light">
-                            <span class="material-symbols-sharp">
-                                monitoring
-                            </span>
-          </div>
-          <div class="details">
-            <h4>Subtask 9</h4>
-            <p>20.11.2021</p>
-          </div>
-        </div>
-        <div class="subtask-details">
-          <div class="card bg-danger">
-                            <span class="material-symbols-sharp">
-                                close
-                            </span>
-          </div>
-          <div class="details">
-            <p>id: 7755</p>
-            <small class="text-muted">park scene</small>
-          </div>
-        </div>
-        <h4>50%</h4>
-      </a>
-      <!--END OF subtask-->
+      </div>
     </div>
-    <!--END OF subtaskS-->
-  </section>
+
+    <div class="refresh">
+      <span>Dáta k: {{ lastUpdate }}</span>
+      <v-btn @click="refresh" color="info">
+        <v-icon>mdi-refresh</v-icon>
+      </v-btn>
+    </div>
+
+    <v-btn color="primary" class="rounded-pill btn-book" @click="doReserve" :disabled="state.valueOf() === ParkingSlotState.Reserved || disableReserveBtn">
+      <v-icon left>mdi-calendar-check</v-icon>Rezervovať
+    </v-btn>
+    <reservation-dialog v-model="showReservationDialog"/>
   </div>
-  <!--END OF RIGHT-->
 </template>
 
+<script>
+import {ParkingSlotState} from "~/static/js/ParkingSlotState";
+import {ParkingSlotWarning} from "~/static/js/ParkingSlotWarning";
+import {randomNumber} from "~/static/js/utils";
+import axios from "axios";
+
+function dateBetween(from,to,check) {
+  return (check <= to && check >= from);
+}
+
+export default {
+  name: 'CarInfo',
+  props:{
+    car: {
+      type: Number,
+      required: true
+    },
+    reservedSlots: {
+      type: Map,
+      required: true
+    }
+  },
+  computed:{
+    isFreezing(){
+      return this.warningType.valueOf() === ParkingSlotWarning.PossibleFreezing;
+    },
+    getStateColor(){
+      switch (this.state) {
+        case ParkingSlotState.Free.valueOf():
+          return {color: '#4caf50'};
+        case ParkingSlotState.Reserved.valueOf():
+          return {color: '#fcaa32'};
+        case ParkingSlotState.Occupied.valueOf():
+          return {color: '#d5555d'};
+        default:
+          return {color: 'inherit'};
+      }
+    },
+  },
+  methods: {
+    refresh() {
+      this.updateInfo();
+    },
+    doReserve() {
+      this.showReservationDialog = true;
+    },
+    afterReservation() {
+      this.disableReserveBtn = true;
+    },
+    updateInfo() {
+      if (this.carId === -1)
+        return
+
+      this.currentTemperature = '-- ';
+      this.currentHumidity = '-- ';
+
+      this.lastUpdate = new Date().toLocaleString();
+      this.isAccessible = this.carId === 2;
+
+      axios.get('http://localhost:3000/api/parkslot/' + this.carId)
+        .then(response => {
+          let cData = response.data;
+          let reservedSlot = this.reservedSlots.get(this.carId);
+
+          if (cData?.distance === 1){
+            this.state = ParkingSlotState.Occupied;
+          } else if (reservedSlot && dateBetween(reservedSlot.from, reservedSlot.to, new Date())){
+            this.state = ParkingSlotState.Reserved;
+          } else {
+            this.state = ParkingSlotState.Free;
+          }
+        })
+
+      axios.get('http://localhost:3000/api/temperature/' + this.carId)
+        .then(response => {
+          let tData = response.data;
+          if (tData?.temperature !== undefined)
+            this.currentTemperature = Math.round(tData.temperature);
+          axios.get('http://localhost:3000/api/humidity/' + this.carId)
+            .then(response1 => {
+              let hData = response1.data;
+              if (hData?.humidity !== undefined)
+                this.currentHumidity = Math.round(hData.humidity);
+              if (hData?.humidity > 70 && tData?.temperature < 0) {
+                this.warningType = ParkingSlotWarning.PossibleFreezing;
+              }
+              else if (hData.humidity < 30 && tData?.temperature > 35) {
+                this.warningType = ParkingSlotWarning.Overheating;
+              }
+              else {
+                this.warningType = ParkingSlotWarning.None;
+              }
+            })
+        })
+    },
+  },
+  data() {
+    return {
+      carId: -1,
+      currentTemperature: '-- ',
+      currentHumidity: '-- ',
+      isAccessible: false,
+      state: ParkingSlotState.Free,
+      stateIcon: 'mdi-parking',
+      stateText: 'Voľné',
+      warningType: ParkingSlotWarning.None,
+      lastUpdate: new Date().toLocaleString(),
+      ParkingSlotWarning, ParkingSlotState,
+      showReservationDialog: false,
+      reservedFrom: '',
+      reservedTo: '',
+      disableReserveBtn: false
+    };
+  },
+  mounted() {
+    this.$root.$on('reserve', this.afterReservation);
+    this.updateInfo();
+    setInterval(this.updateInfo, 30000);
+  },
+  watch: {
+    car: function (val) {
+      this.carId = val;
+      this.updateInfo()
+    },
+    state: function (val) {
+      switch (val.valueOf()) {
+        case ParkingSlotState.Free:
+          this.stateIcon = 'mdi-parking';
+          this.stateText = 'Voľné';
+          break;
+        case ParkingSlotState.Reserved:
+          this.stateIcon = 'mdi-calendar-check';
+          this.stateText = 'Rezervované';
+          let reservedSlot = this.reservedSlots.get(this.carId);
+          this.reservedFrom = reservedSlot?.from;
+          this.reservedTo = reservedSlot?.to;
+          break;
+        case ParkingSlotState.Occupied:
+          this.stateIcon = 'mdi-car';
+          this.stateText = 'Obsadené';
+          break;
+      }
+    }
+  }
+}
+</script>
+
+<!--suppress CssUnusedSymbol -->
 <style>
-:root{
-  --color-white: #ffffff;
-  --color-light: #f0eff5;
-  --color-gray-light:#86848c;
-  --color-gray-dark:#56555e;
-  --color-dark:#27282f;
-  --color-primary:rgb(71,7,234);
-  --color-success:rgb(34,202,75);
-  --color-danger:rgb(255,67,54);
-  --color-warning:rgb(234,181,7);
-  --color-purple: rgb(160,99,245);
+  .refresh {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1em;
+  }
 
-  --color-primary-light: rgba(71,7,234,0.2);
-  --color-success-light: rgba(34,202,75,0.2);
-  --color-danger-light: rgba(255,67,54,0.2);
-  --color-purple-light: rgba(160,99,245,0.2);
-
-
-  --card-padding: 1.6rem;
-  --padding-1: 1rem;
-  --padding-2: 8px;
-
-  --card-border-radius: 1.6rem;
-  --border-radius-1: 1rem;
-  --border-radius-2: 6px;
-}
-
-.dark-theme{
-  --color-white: #131316;
-  --color-light: #23232a;
-  --color-dark: #ddd;
-  --color-gray-dark: #adacb5;
-}
-
-  .recent-subtasks{
+  .recent-subtasks {
     margin-top: 2rem;
   }
-  .recent-subtasks span{
-    color: var(--color-dark);
+
+  .recent-subtasks span {
     width: 2.2rem;
   }
-  .recent-subtasks .header{
+
+  .recent-subtasks .carinfo-header {
     display: flex;
-    justify-content: space-between;
+    justify-content: space-around;
     margin-bottom: 1rem;
+    align-items: center;
+    gap: 0.5em;
   }
 
-  .recent-subtasks .header h2{
+  .recent-subtasks .header h2 {
     margin-left: 1.5rem;
   }
-  .recent-subtasks .header a{
+
+  .recent-subtasks .header h3 {
+    margin-right: 1.5rem;
     display: flex;
     align-items: center;
   }
 
-
-  .recent-subtasks .subtasks{
+  .recent-subtasks .subtasks {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 1.5rem var(--card-padding);
-    border-radius: var(--card-border-radius);
-  }
-
-  .recent-subtasks a{
-    color: var(--color-dark);
-  }
-
-  .recent-subtasks a#active{
-    background: var(--color-white);
-    color: var(--color-primary);
-  }
-
-  .recent-subtasks .subtasks:hover{
-    background: var(--color-white);
-    cursor: pointer;
+    padding: 0.5rem 1.4rem;
+    border-radius: 1.6rem;
   }
 
   .recent-subtasks .subtasks .service {
@@ -337,26 +280,56 @@
     gap: 1rem;
   }
 
-
-  .recent-subtasks .subtasks .service .icon{
-    padding: var(--padding-2);
-    border-radius: var(--border-radius-1);
+  .recent-subtasks .subtasks .service {
+    padding: 8px;
+    border-radius: 1rem;
     display: flex;
     align-items: center;
   }
 
-  .recent-subtasks .subtask-details{
+  .recent-subtasks .subtask-details {
     display: flex;
     align-items: center;
     gap: 1rem;
   }
 
-  .recent-subtasks .subtask-details .card{
+  .recent-subtasks .subtask-details .card {
     display: flex;
     width: 4rem;
-    height: 3rem;
+    height: 2.2rem;
     align-items: center;
     justify-content: center;
-    border-radius: var(--border-radius-2);
+    border-radius: 6px;
+  }
+
+  /*noinspection CssUnusedSymbol*/
+  button.btn-book {
+    display: flex;
+    width: 15rem;
+    height: 2rem;
+    margin-top: 20%;
+    margin-bottom: 1rem;
+    margin-left: 5rem;
+    justify-content: center;
+    align-items: center;
+    /*padding: 1.5rem var(--card-padding);*/
+  }
+
+  #alert-freezing {
+    display: flex;
+    color: #1477da;
+    animation: blinker 1s linear infinite;
+  }
+
+  #alert-overheating {
+    display: flex;
+    color: #d5555d;
+    animation: blinker 1s linear infinite;
+  }
+
+  @keyframes blinker {
+    50%{
+      opacity: 0;
+    }
   }
 </style>

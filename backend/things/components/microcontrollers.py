@@ -3,11 +3,9 @@ from machine import Pin
 import network
 from components.sensors import Sensor
 from components.components import Component
-from components.actuators import Actuator
+from components.actuators import Actuator,LED, LCD
 import sys
 
-# TODO: MAYBE NOT CONNECT TO MQTT HERE AS WELL
-# TODO: CHANGE UTIME TO TIME
 """
     Maybe add closeAllGates to Microcontroller class
 """
@@ -186,3 +184,4 @@ class RPiPico(Microcontroller):
             self.connect_to_internet()
 
         self.__components_health_check(component_type)
+

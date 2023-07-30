@@ -4,7 +4,7 @@ import time
 from components.publishers import Button, Publisher
 from components.sensors import GeneralDistanceSensor
 from lib.umqtt.simple import MQTTClient
-from components.actuators import LED, GeneralGate, Actuator
+from components.actuators import LED, GeneralGate, Actuator, LCD
 from certificates.certificates_loaders import get_ssl_parameters
 
 
@@ -25,10 +25,10 @@ class Service:
         self.service_type = service_type
         if mqtt_client is None:
             # self._mqtt_client = MQTTClient(client_id="parkslot1",
-            #                                server="iot-hub-parking.azure-devices.net",
+            #                                server="parking-iot-hub.azure-devices.net",
             #                                port=8883,
-            #                                user="iot-hub-parking.azure-devices.net/parkslot1/?api-version=2021-04-12",
-            #                                password="SharedAccessSignature sr=iot-hub-parking.azure-devices.net%2Fdevices%2Fparkslot1&sig=JBZzE0oW5c%2BD74tFr70Nz8WLsfsapU9hWI85Dz6XFNc%3D&se=1701537742",
+            #                                user="parking-iot-hub.azure-devices.net/parkslot1/?api-version=2021-04-12",
+            #                                password="SharedAccessSignature sr=parking-iot-hub.azure-devices.net%2Fdevices%2Fparkslot1&sig=xvah6HtPd1u9WcGSxaSxVVOSqu%2BS9OtSBKuL8Z1yrG8%3D&se=4672927147",
             #                                keepalive=3600,
             #                                ssl=True,
             #                                ssl_params=get_ssl_parameters())
@@ -160,18 +160,52 @@ class GateService(ServicePublisherToActuator):
 
 
 class LedsService(ServicePublisherToActuator):
-    # "devices/parkslot1/messages/events/sensors/distance_sensors"
     def __init__(self, service_id: str, service_type: ServiceType, distance_sensor: GeneralDistanceSensor, leds: LED, mqtt_client: MQTTClient = None,
                  mqtt_server: str = "iot-hub-parking.azure-devices.net"):
         super().__init__(service_id, service_type, distance_sensor, leds, mqtt_client, mqtt_server)
-        self.leds = leds
 
     def _react_to_message(self, topic: str, message: str) -> None:
         if type(message) is bytes:
             message = message.decode("utf-8")
 
         try:
-            json.loads(message)
-            self._mqtt_client.publish(self._publishing_topic, message)
+            message_dict = json.loads(message)
+            if "distance" not in message_dict:
+                raise ValueError
+            if message_dict.get("distance") == 1:
+                self._mqtt_client.publish(self._publishing_topic, json.dumps({"occupied": "True"}))
+            elif message_dict.get("distance") == 0:
+                self._mqtt_client.publish(self._publishing_topic, json.dumps({"occupied": "False"}))
+            print(f"Service {self._id} reaction status: SUCCESS\n")
         except ValueError:
-            print("json sent in wrong format")
+            print(f"Service {self._id} reaction status: FAILURE - WRONG JSON FORMAT\n")
+        except Exception:
+            print(f"Service {self._id} reaction status: FAILURE - MQTT CONNECTION FAILED\n")
+            self.is_connected_to_mqtt = False
+
+
+class LCDService(ServicePublisherToActuator):
+
+    def __init__(self, service_id: str, service_type: ServiceType, distance_sensor: GeneralDistanceSensor, lcd: LCD,
+                 mqtt_client: MQTTClient = None,
+                 mqtt_server: str = "iot-hub-parking.azure-devices.net"):
+        super().__init__(service_id, service_type, distance_sensor, lcd, mqtt_client, mqtt_server)
+
+    def _react_to_message(self, topic: str, message: str) -> None:
+        if type(message) is bytes:
+            message = message.decode("utf-8")
+
+        try:
+            message_dict = json.loads(message)
+            if "distance" not in message_dict:
+                raise ValueError
+            if message_dict.get("distance") == 1:
+                self._mqtt_client.publish(self._publishing_topic, json.dumps({'occupied': 'True'}))
+            elif message_dict.get("distance") == 0:
+                self._mqtt_client.publish(self._publishing_topic, json.dumps({'occupied': 'False'}))
+            print(f"Service {self._id} reaction status: SUCCESS\n")
+        except ValueError:
+            print(f"Service {self._id} reaction status: FAILURE - WRONG JSON FORMAT\n")
+        except Exception:
+            print(f"Service {self._id} reaction status: FAILURE - MQTT CONNECTION FAILED\n")
+            self.is_connected_to_mqtt = False

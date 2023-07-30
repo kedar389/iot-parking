@@ -6,6 +6,7 @@ import json
 from lcd.lcd_api import LcdApi
 from lcd.pico_i2c_lcd import I2cLcd
 from lib.umqtt.simple import MQTTClient
+from components.sensors import IRDistance
 
 
 # Abstract class
@@ -65,8 +66,10 @@ class GeneralGate(Actuator):
 
         gate_name = "gate_" + str(self.instance_counter)
         self.gate_state = GateState.CLOSED
-        super().__init__(gate_location, gate_name, "gates/" + gate_name, mqtt_client,
-                         mqtt_server)  # TODO GHANGE TO //"devices/parkslot1/messages/events/subscribers/gates/" + gate_name//
+        super().__init__(gate_location, gate_name, "devices/parkslot1/messages/events/subscribers/gates/" + gate_name, mqtt_client,
+                         mqtt_server)
+        # "devices/parkslot1/messages/events/subscribers/gates/" + gate_name
+        # devices/parkslot1/messages/events/
         GeneralGate.instance_counter += 1
 
     def _react_to_message(self, topic: str, message: str) -> None:
@@ -136,8 +139,19 @@ class SG90Servo(GeneralGate):
 
 
 """
-    set json "{"spaces_left": <int>}"
+    set json "{"occupied": <bool>}"
 """
+
+"""
+    VBUS -> power
+    GP0, GP1 -> com
+"""
+
+
+class ParkingSpotsState:
+    # maximum number of parking spots
+    INITIAL_STATE = 1
+    EMPTY = 0
 
 
 class LCD(Actuator):
@@ -145,24 +159,30 @@ class LCD(Actuator):
     __I2C_ADDR = 0x27
     __I2C_NUM_ROWS = 4
     __I2C_NUM_COLS = 16
-    __spaces_left = 1
+    # max number of parking spots
+    __spaces_left = ParkingSpotsState.INITIAL_STATE
 
-    def __init__(self, lcd_location: str, sda_pin: int, scl_pin: int):
+    def __init__(self, lcd_location: str, sda_pin: int, scl_pin: int, mqtt_client: MQTTClient = None,
+                 mqtt_server: str = "iot-hub-parking.azure-devices.net"):
         lcd_name = "lcd_" + str(self.instance_counter)
 
         self.i2c = I2C(0, sda=Pin(sda_pin), scl=Pin(scl_pin), freq=400000)
         self.lcd = I2cLcd(self.i2c, self.__I2C_ADDR, self.__I2C_NUM_ROWS, self.__I2C_NUM_COLS)
-        super().__init__(lcd_location, lcd_name, "devices/parkslot1/messages/events/subscribers/displays/" + lcd_name)
+        super().__init__(lcd_location, lcd_name, "devices/parkslot1/messages/events/subscribers/displays/" + lcd_name
+                         , mqtt_client=mqtt_client, mqtt_server=mqtt_server)
+        # super().__init__(lcd_location, lcd_name, "displays/" + lcd_name, mqtt_client, mqtt_server)
         LCD.instance_counter += 1
         self.__initialize_display_text()
 
     def _react_to_message(self, topic: str, message: str) -> None:
+        print("LCD reacting to msg")
         if type(message) is bytes:
             message = message.decode("utf-8")
 
         try:
             message_dict = json.loads(message)
-            self.__spaces_left = message_dict.get("spaces_left")
+            if message_dict.get("occupied") == "True":
+                self.__spaces_left -= 1
         except ValueError:
             print("json sent in wrong format")
         self.lcd.move_to(13, 0)
@@ -180,24 +200,39 @@ class LCD(Actuator):
         self.lcd.move_to(7, 1)
         self.lcd.putstr("->")
 
+    # call this function in the main loop before reading from distance sensors
+    def reset_spaces_left(self):
+        self.__spaces_left = ParkingSpotsState.INITIAL_STATE
+        
+    def get_topic(self) -> str:
+        return "devices/parkslot1/messages/events/subscribers/displays/" + "lcd_" + str(self.instance_counter)
+        # return "displays/" + "lcd_" + str(self.instance_counter)
+
 
 """
     set json "{"occupied": <bool>}"
 """
 
+"""
+    GP16 -> com_red
+    GP11 -> com_green
+"""
 
 class LED(Actuator):
     instance_counter = 0
 
-    def __init__(self, led_location: str, led_green_pin: int, led_red_pin: int):
+    def __init__(self, led_location: str, led_green_pin: int, led_red_pin: int, mqtt_client: MQTTClient = None,
+                 mqtt_server: str = "iot-hub-parking.azure-devices.net"):
         led_name = "led_" + str(self.instance_counter)
 
-        super().__init__(led_location, led_name,
-                         "devices/parkslot1/messages/events/subscribers/leds/" + str(self.instance_counter))
+        super().__init__(led_location, led_name,"devices/parkslot1/messages/events/subscribers/leds/" + led_name
+                         , mqtt_client=mqtt_client, mqtt_server=mqtt_server)
+        # super().__init__(led_location, led_name, "leds/" + led_name, mqtt_client, mqtt_server)
         self.led_green = Pin(led_green_pin, Pin.OUT)
         self.led_red = Pin(led_red_pin, Pin.OUT)
 
     def _react_to_message(self, topic: str, message: str) -> None:
+        print("leds reacting to msg")
         if type(message) is bytes:
             message = message.decode("utf-8")
 
@@ -214,3 +249,7 @@ class LED(Actuator):
 
     def set_subscription(self) -> None:
         self._mqtt_client.subscribe(self.subscription_topic)
+
+    def get_topic(self) -> str:
+        return "devices/parkslot1/messages/events/subscribers/leds/" + "led_" + str(self.instance_counter)
+        # return "leds/" + "led_" + str(self.instance_counter)

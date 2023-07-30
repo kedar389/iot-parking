@@ -26,6 +26,11 @@ class Publisher(Component):
         return "devices/parkslot1/messages/events/publishers"
 
 
+"""
+    3V3 -> power
+    GP14 -> com
+"""
+
 class Button(Publisher):
     instance_counter = 0
 
@@ -36,8 +41,8 @@ class Button(Publisher):
         self.__last_detection = None
 
     def get_topic(self) -> str:
-        return "random/button" # TODO REMOVE
-        return super().get_topic() + "/buttons/" + self._id
+        return super().get_topic() + "/buttons/" + self._id + "/"
+        # return "devices/parkslot1/messages/events/"
 
     def __react_on_click(self, *args) -> None:
         if self.__last_detection is None or time.time() - self.__last_detection > 1:

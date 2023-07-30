@@ -1,3 +1,5 @@
+// noinspection AllyPlainJsInspection
+
 import colors from 'vuetify/es5/util/colors'
 import YAML from 'yaml'
 import fs from 'fs'
@@ -7,13 +9,13 @@ function loadYaml(path) {
 }
 
 export default {
-  FOR DEPLOYMENT
-  *server: {
-    port: 8080, // default: 3000
-    host: '0.0.0.0', // default: localhost,
-    timing: false
+  server: {
+    port: process.env.PORT, // default: 3000
+    host: '0.0.0.0' // default: localhost,
   },
-  mode: 'spa',
+  serverMiddleware: {
+    '/api': '~/api'
+  },
 
   // Disable server-side rendering: https://go.nuxtjs.dev/ssr-mode
   ssr: false,
@@ -26,9 +28,9 @@ export default {
       { charset: 'utf-8' },
       { name: 'viewport', content: 'width=device-width, initial-scale=1' },
       { hid: 'description', name: 'description', content: '' },
-      { name: 'format-detection', content: 'telephone=no' },
+      { name: 'format-detection', content: 'telephone=no' }
     ],
-    link: [{ rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' }],
+    link: [{ rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' }]
   },
   lintOnSave: false,
   // Global CSS: https://go.nuxtjs.dev/config-css
@@ -53,7 +55,7 @@ export default {
     // https://go.nuxtjs.dev/stylelint
     //'@nuxtjs/stylelint-module',
     // https://go.nuxtjs.dev/vuetify
-    '@nuxtjs/vuetify',
+    '@nuxtjs/vuetify'
   ],
 
   // Modules: https://go.nuxtjs.dev/config-modules
@@ -73,8 +75,8 @@ export default {
 
     },
     manifest: {
-      name: 'XXX',
-      short_name: 'XXX',
+      name: 'IOTparking',
+      short_name: 'IOTparking',
       description: 'Project description',
       theme_color: '#d5d5d1',
       background_color: '#ffffff',
@@ -125,8 +127,8 @@ export default {
           info: colors.lightBlue.base,
           success: colors.lightGreen.base
         }
-      },
-    },
+      }
+    }
   },
 
   // Build Configuration: https://go.nuxtjs.dev/config-build
@@ -144,5 +146,5 @@ export default {
         use: 'yaml-loader'
       });
     }
-  },
+  }
 }

@@ -5,7 +5,7 @@ import dht
 from components.publishers import Publisher
 from lib.umqtt.simple import MQTTClient
 
-
+# TODO: change topics when ready
 # Abstract class
 class Sensor(Publisher):
     __current_measurement = None
@@ -59,8 +59,8 @@ class GeneralThermometer(Sensor):
         super().__init__(sensor_location, sensor_id, "temperature", mqtt_client, mqtt_server)
 
     def get_topic(self) -> str:
-        return "custom_temperature" # TODO REMOVE
         return super().get_topic() + "/thermometers/" + self._id
+        # return "devices/parkslot1/messages/events/"
 
 
 # Abstract class
@@ -71,9 +71,8 @@ class GeneralHumiditySensor(Sensor):
         super().__init__(sensor_location, sensor_id, "humidity", mqtt_client, mqtt_server)
 
     def get_topic(self) -> str:
-        return "custom_humidity" # TODO REMOVE
         return super().get_topic() + "/humidity_sensors/" + self._id
-
+        # return "devices/parkslot1/messages/events/"
 
 # Abstract class
 class GeneralDistanceSensor(Sensor):
@@ -83,8 +82,9 @@ class GeneralDistanceSensor(Sensor):
         super().__init__(sensor_location, sensor_id, "distance", mqtt_client, mqtt_server)
 
     def get_topic(self) -> str:
-        return "distance_sensor" # TODO REMOVE
         return super().get_topic() + "/distance_sensors/" + self._id
+        # return "distance_sensors/" + self._id
+        # return "devices/parkslot1/messages/events/"
 
 
 class InternalThermometer(GeneralThermometer):
@@ -172,7 +172,10 @@ class DHT11HumiditySensor(GeneralHumiditySensor):
         return healthy and self.__is_sensor_working, json.dumps(health_report)
 
 
-# TODO please insert which pin is for power and which for data, like on line 118-121
+"""
+    3V3 -> power
+    GP15 -> com
+"""
 class IRDistance(GeneralDistanceSensor):
     __current_measurement = None
     instance_counter = 0
@@ -180,6 +183,18 @@ class IRDistance(GeneralDistanceSensor):
     def __init__(self, sensor_location: str, pin: int, mqtt_client: MQTTClient = None, mqtt_server: str = "iot-hub-parking.azure-devices.net"):
         super().__init__(sensor_location, "distance_sensor_" + str(self.instance_counter), mqtt_client, mqtt_server)
         self.__pin = Pin(pin, Pin.IN)
+        self.__is_sensor_working = True
 
     def measure(self) -> None:
-        self.__current_measurement = self.__pin.value()
+        try:
+            self.__current_measurement = self.__pin.value()
+        except OSError:
+            self.__current_measurement = None
+            self.__is_sensor_working = False
+            print(f"Distance sensor {self._id} not working properly\n")
+
+    def health_check(self) -> (bool, json):
+        healthy, health_report = super().health_check()
+        health_report = json.loads(health_report)
+        health_report["sensor_working"] = self.__is_sensor_working
+        return healthy and self.__is_sensor_working, json.dumps(health_report)

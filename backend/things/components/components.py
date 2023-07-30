@@ -17,10 +17,10 @@ class Component:
 
         if mqtt_client is None:
             # self._mqtt_client = MQTTClient(client_id="parkslot1",
-            #                                server="iot-hub-parking.azure-devices.net",
+            #                                server="parking-iot-hub.azure-devices.net",
             #                                port=8883,
-            #                                user="iot-hub-parking.azure-devices.net/parkslot1/?api-version=2021-04-12",
-            #                                password="SharedAccessSignature sr=iot-hub-parking.azure-devices.net%2Fdevices%2Fparkslot1&sig=JBZzE0oW5c%2BD74tFr70Nz8WLsfsapU9hWI85Dz6XFNc%3D&se=1701537742",
+            #                                user="parking-iot-hub.azure-devices.net/parkslot1/?api-version=2021-04-12",
+            #                                password="SharedAccessSignature sr=parking-iot-hub.azure-devices.net%2Fdevices%2Fparkslot1&sig=xvah6HtPd1u9WcGSxaSxVVOSqu%2BS9OtSBKuL8Z1yrG8%3D&se=4672927147",
             #                                keepalive=3600,
             #                                ssl=True,
             #                                ssl_params=get_ssl_parameters())
